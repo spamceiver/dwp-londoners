@@ -27,10 +27,9 @@ public class DwpController {
 
     @RequestMapping(value = "/users", method = RequestMethod.GET)
     public ResponseEntity<List<Map<String, Object>>> getUsers(
-            @RequestParam(name = "distance", defaultValue = "${request.defaultDistance}", required = false) double distance,
-            @RequestParam(name = "city", defaultValue = "${request.defaultCity}", required = false) String city) {
+            @RequestParam(name = "distance", defaultValue = "${request.defaultDistance}", required = false) double distance) {
         try {
-            return new ResponseEntity<>(dwpService.getAllCityUsers(city, distance), HttpStatus.OK);
+            return new ResponseEntity<>(dwpService.getAllCityUsers(distance), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error calling the users API", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);

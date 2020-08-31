@@ -1,44 +1,59 @@
 package uk.gov.dwp;
 
+import org.json.JSONArray;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.List;
-import java.util.Map;
-
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, classes = DwpApplication.class)
+@AutoConfigureMockMvc
 class IntegrationTests {
 
     @Autowired
     private DwpController dwpController;
-
+    @Autowired
+    private MockMvc mvc;
 
     @Test
-    void testApiCalls() {
+    void testApiCalls() throws Exception {
 
-        // zero miles from DummyCity
-        final ResponseEntity<List<Map<String, Object>>> zeroUsers = dwpController.getUsers(0, "DummyCity");
-        assertTrue(zeroUsers.getBody() != null && zeroUsers.getBody().isEmpty(), "Should return zero results");
+        MvcResult mvcResult = mvc.perform(get("/dwp/users?distance={distance}", 0)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].email", containsString("@")))
+                .andReturn();
+        JSONArray jsonArray = new JSONArray(mvcResult.getResponse().getContentAsString());
+        final int zeroDistanceUsersSize = jsonArray.length();
 
-        // zero miles from London
-        final ResponseEntity<List<Map<String, Object>>> londonUsers = dwpController.getUsers(0, "London");
-        assertTrue(londonUsers.getBody() != null && londonUsers.getBody().size() > 0, "Should return some results");
+        mvcResult = mvc.perform(get("/dwp/users?distance={distance}", 50)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].email", containsString("@")))
+                .andReturn();
+        jsonArray = new JSONArray(mvcResult.getResponse().getContentAsString());
+        final int fiftyMilesUsersSize = jsonArray.length();
 
-        // 50 miles from London
-        final ResponseEntity<List<Map<String, Object>>> fiftyMilesFromLondonUsers = dwpController.getUsers(50, "London");
-        assertTrue(fiftyMilesFromLondonUsers.getBody() != null
-                && fiftyMilesFromLondonUsers.getBody().size() > 0
-                && fiftyMilesFromLondonUsers.getBody().size() > londonUsers.getBody().size(), "Should return more results than before");
+        mvcResult = mvc.perform(get("/dwp/users?distance={distance}", Double.MAX_VALUE)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].email", containsString("@")))
+                .andReturn();
+        jsonArray = new JSONArray(mvcResult.getResponse().getContentAsString());
+        final int allUsersSize = jsonArray.length();
 
-        // all users
-        final ResponseEntity<List<Map<String, Object>>> allUsers = dwpController.getUsers(Double.MAX_VALUE, "London");
-        assertTrue(allUsers.getBody() != null
-                && allUsers.getBody().size() > 0
-                && allUsers.getBody().size() > fiftyMilesFromLondonUsers.getBody().size(), "Should return more results then before");
+        assertTrue(allUsersSize > fiftyMilesUsersSize && fiftyMilesUsersSize > zeroDistanceUsersSize,
+                "The distance parameter is not working.");
+
     }
 
 }

@@ -4,23 +4,25 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@RunWith(SpringRunner.class)
+@WebMvcTest(DwpController.class)
 class DwpControllerTest {
 
     private static final String sampleJsonStr = "[\n" +
@@ -44,10 +46,8 @@ class DwpControllerTest {
             "  }\n" +
             "]";
 
-    private MockMvc mockMvc;
-
     @Autowired
-    private WebApplicationContext context;
+    private MockMvc mockMvc;
 
     @MockBean
     private DwpService dwpService;
@@ -56,9 +56,6 @@ class DwpControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders
-                .webAppContextSetup(context)
-                .build();
         ObjectMapper mapper = new ObjectMapper();
         try {
             jsonObj = mapper.readValue(sampleJsonStr, List.class);
@@ -77,22 +74,20 @@ class DwpControllerTest {
 
     @Test
     void getUsers() throws Exception {
-        final String city = "some city";
         final int distance = 10;
-        when(dwpService.getAllCityUsers(city, distance))
+        when(dwpService.getAllCityUsers(distance))
                 .thenReturn(jsonObj);
-        mockMvc.perform(get("/dwp/users?city={city}&distance={distance}", city, distance))
+        mockMvc.perform(get("/dwp/users?distance={distance}", distance))
                 .andExpect(status().isOk())
                 .andExpect(content().json(sampleJsonStr));
     }
 
     @Test
     void getUsersWithException() throws Exception {
-        final String someCity = "some city";
         final int anyDistance = 10;
-        when(dwpService.getAllCityUsers(someCity, anyDistance))
+        when(dwpService.getAllCityUsers(any(Double.class)))
                 .thenThrow(new RuntimeException("some runtime exception"));
-        mockMvc.perform(get("/dwp/users?city={city}&distance={distance}", someCity, anyDistance))
+        mockMvc.perform(get("/dwp/users?city=distance={distance}", anyDistance))
                 .andExpect(status().is5xxServerError());
     }
 

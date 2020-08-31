@@ -5,7 +5,6 @@ import net.sf.geographiclib.Geodesic;
 import net.sf.geographiclib.GeodesicData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -25,8 +24,10 @@ public class DwpService {
 
     private static Logger logger = LoggerFactory.getLogger(DwpService.class);
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
+
+    @Value("${city}")
+    String CITY;
 
     // London lat: 51 deg 30 min 26 sec N
     double CITY_LATITUDE = 51 + (30 / 60.0) + (26 / 60.0 / 60.0);
@@ -39,8 +40,15 @@ public class DwpService {
     @Value("${cityLon}")
     private String cityLonStr;
 
+    public DwpService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     @PostConstruct
     public void init() {
+        if (this.CITY == null)  {
+            this.CITY = "London";
+        }
         ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
         ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("Nashorn");
         try {
@@ -53,9 +61,9 @@ public class DwpService {
         }
     }
 
-    public List<Map<String, Object>> getUsersFromCity(String city)  {
+    public List<Map<String, Object>> getUsersFromCity()  {
         ResponseEntity<List<Map<String, Object>>> cityUsers = restTemplate.exchange(
-                "https://bpdts-test-app.herokuapp.com/city/" + city + "/users",
+                "https://bpdts-test-app.herokuapp.com/city/" + this.CITY + "/users",
                 HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {});
         return cityUsers.getBody() == null ? Collections.emptyList() : cityUsers.getBody();
     }
@@ -74,8 +82,8 @@ public class DwpService {
         }
     }
 
-    public List<Map<String, Object>> getAllCityUsers(String city, double distance)   {
-        final List<Map<String, Object>> usersFromCity = getUsersFromCity(city);
+    public List<Map<String, Object>> getAllCityUsers(double distance)   {
+        final List<Map<String, Object>> usersFromCity = getUsersFromCity();
         final List<Map<String, Object>> usersFromCoordinates = getUsersFromCoordinates(distance);
 
         // Keep an index of the ids to avoid duplicates from the two APIs:

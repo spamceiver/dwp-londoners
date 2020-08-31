@@ -8,14 +8,14 @@
         <version>2.3.3.RELEASE</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.example</groupId>
-    <artifactId>dwp-worksingspace</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>dwp-worksingspace</name>
+    <groupId>uk.gov.dwp</groupId>
+    <artifactId>dwp-londoners-api</artifactId>
+    <version>1.0</version>
+    <name>dwp-londoners-api</name>
     <description>Demo project for DWP</description>
 
     <properties>
-        <java.version>8</java.version>
+        <java.version>11</java.version>
     </properties>
 
     <dependencies>

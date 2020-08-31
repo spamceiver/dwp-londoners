@@ -4,10 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -19,7 +20,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 class DwpServiceTest {
 
     private static final String sampleJsonStrForCoordinatesUsers = "[\n" +
@@ -70,20 +71,24 @@ class DwpServiceTest {
         }
     }
 
-    @SpyBean
+    @InjectMocks
     private DwpService dwpService;
 
-    @MockBean
+    @Mock
     RestTemplate restTemplate;
 
     @Test
     void testUnionOfResults() {
-        final String someCity = "some city";
         final double distance = 777;
-        Mockito.doReturn(cityUsersObj).when(dwpService).getUsersFromCity(someCity);
-        Mockito.doReturn(coordinatesUsersObj).when(dwpService).getUsersFromCoordinates(distance);
+        Mockito.when(restTemplate.exchange("https://bpdts-test-app.herokuapp.com/city/null/users",
+                HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}))
+                .thenReturn(new ResponseEntity<>(cityUsersObj, HttpStatus.OK));
 
-        final List<Map<String, Object>> allCityUsers = dwpService.getAllCityUsers(someCity, distance);
+        Mockito.when(restTemplate.exchange("https://bpdts-test-app.herokuapp.com/users",
+                HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}))
+                .thenReturn(new ResponseEntity<>(coordinatesUsersObj, HttpStatus.OK));
+
+        final List<Map<String, Object>> allCityUsers = dwpService.getAllCityUsers(distance);
         // the common user from the two APIs should not be there
         assertEquals(2, allCityUsers.size(), "Wrong number of results");
     }
